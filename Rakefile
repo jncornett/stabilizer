@@ -1,25 +1,43 @@
-directory 'build/test/www'
-directory 'build/test/www/lib'
+TEST_ROOT = 'build/test/www'
+directory TEST_ROOT
 
-file 'build/test/www/index.html' => ['build/test/www'] do |t|
-  cp 'test/index.html', t.name
+TEST_LIB_ROOT = File.join(TEST_ROOT, 'lib')
+directory TEST_LIB_ROOT
+
+TEST_FILES = FileList.new('test/*')
+
+BUILT_TEST_FILES = []
+TEST_FILES.each do |f|
+  btf = File.join(TEST_ROOT, File.basename(f))
+  BUILT_TEST_FILES << btf
+  file btf => TEST_ROOT do
+    cp f, btf
+  end
 end
 
-file 'build/test/www/lib/stabilizer.js' => ['build/test/www/lib'] do |t|
-  cp 'lib/stabilizer.js', t.name
+task :test_files => BUILT_TEST_FILES
+
+LIB_FILES = FileList.new('lib/*')
+BUILT_LIB_FILES = []
+LIB_FILES.each do |f|
+  blb = File.join(TEST_LIB_ROOT, File.basename(f))
+  BUILT_LIB_FILES << blb
+  file blb => TEST_LIB_ROOT do
+    cp f, blb
+  end
 end
 
-task build: [
-  'build/test/www/index.html',
-  'build/test/www/lib/stabilizer.js'
-]
+task :lib_files => BUILT_LIB_FILES
 
-task serve: :build do
-  Dir.chdir 'build/test/www'  do
+task :build => [:test_files, :lib_files]
+
+task :clean do
+  rm_rf TEST_ROOT
+end
+
+task :serve => [:build] do
+  Dir.chdir(TEST_ROOT) do
     sh 'python -m http.server'
   end
 end
 
-task :clean do
-  rm_rf 'build'
-end
